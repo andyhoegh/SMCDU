@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="author" content="Andy Hoegh" />
+  <title>Particle filtering methods for animal movement modeling</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="index_files/reveal.js-3.3.0.1/css/reveal.css"/>
+
+
+
+<link rel="stylesheet" href="index_files/reveal.js-3.3.0.1/css/theme/simple.css" id="theme">
+
+
+  <!-- some tweaks to reveal css -->
+  <style type="text/css">
+    .reveal h1 { font-size: 2.0em; }
+    .reveal h2 { font-size: 1.5em;  }
+    .reveal h3 { font-size: 1.25em;	}
+    .reveal h4 { font-size: 1em;	}
+
+    .reveal .slides>section,
+    .reveal .slides>section>section {
+      padding: 0px 0px;
+    }
+
+
+
+    .reveal table {
+      border-width: 1px;
+      border-spacing: 2px;
+      border-style: dotted;
+      border-color: gray;
+      border-collapse: collapse;
+      font-size: 0.7em;
+    }
+
+    .reveal table th {
+      border-width: 1px;
+      padding-left: 10px;
+      padding-right: 25px;
+      font-weight: bold;
+      border-style: dotted;
+      border-color: gray;
+    }
+
+    .reveal table td {
+      border-width: 1px;
+      padding-left: 10px;
+      padding-right: 25px;
+      border-style: dotted;
+      border-color: gray;
+    }
+
+
+  </style>
+
+    <style type="text/css">code{white-space: pre;}</style>
+
+
+<!-- Printing and PDF exports -->
+<script id="paper-css" type="application/dynamic-css">
+
+/* Default Print Stylesheet Template
+   by Rob Glazebrook of CSSnewbie.com
+   Last Updated: June 4, 2008
+
+   Feel free (nay, compelled) to edit, append, and
+   manipulate this file as you see fit. */
+
+
+@media print {
+
+	/* SECTION 1: Set default width, margin, float, and
+	   background. This prevents elements from extending
+	   beyond the edge of the printed page, and prevents
+	   unnecessary background images from printing */
+	html {
+		background: #fff;
+		width: auto;
+		height: auto;
+		overflow: visible;
+	}
+	body {
+		background: #fff;
+		font-size: 20pt;
+		width: auto;
+		height: auto;
+		border: 0;
+		margin: 0 5%;
+		padding: 0;
+		overflow: visible;
+		float: none !important;
+	}
+
+	/* SECTION 2: Remove any elements not needed in print.
+	   This would include navigation, ads, sidebars, etc. */
+	.nestedarrow,
+	.controls,
+	.fork-reveal,
+	.share-reveal,
+	.state-background,
+	.reveal .progress,
+	.reveal .backgrounds {
+		display: none !important;
+	}
+
+	/* SECTION 3: Set body font face, size, and color.
+	   Consider using a serif font for readability. */
+	body, p, td, li, div {
+		font-size: 20pt!important;
+		font-family: Georgia, "Times New Roman", Times, serif !important;
+		color: #000;
+	}
+
+	/* SECTION 4: Set heading font face, sizes, and color.
+	   Differentiate your headings from your body text.
+	   Perhaps use a large sans-serif for distinction. */
+	h1,h2,h3,h4,h5,h6 {
+		color: #000!important;
+		height: auto;
+		line-height: normal;
+		font-family: Georgia, "Times New Roman", Times, serif !important;
+		text-shadow: 0 0 0 #000 !important;
+		text-align: left;
+		letter-spacing: normal;
+	}
+	/* Need to reduce the size of the fonts for printing */
+	h1 { font-size: 28pt !important;  }
+	h2 { font-size: 24pt !important; }
+	h3 { font-size: 22pt !important; }
+	h4 { font-size: 22pt !important; font-variant: small-caps; }
+	h5 { font-size: 21pt !important; }
+	h6 { font-size: 20pt !important; font-style: italic; }
+
+	/* SECTION 5: Make hyperlinks more usable.
+	   Ensure links are underlined, and consider appending
+	   the URL to the end of the link for usability. */
+	a:link,
+	a:visited {
+		color: #000 !important;
+		font-weight: bold;
+		text-decoration: underline;
+	}
+	/*
+	.reveal a:link:after,
+	.reveal a:visited:after {
+		content: " (" attr(href) ") ";
+		color: #222 !important;
+		font-size: 90%;
+	}
+	*/
+
+
+	/* SECTION 6: more reveal.js specific additions by @skypanther */
+	ul, ol, div, p {
+		visibility: visible;
+		position: static;
+		width: auto;
+		height: auto;
+		display: block;
+		overflow: visible;
+		margin: 0;
+		text-align: left !important;
+	}
+	.reveal pre,
+	.reveal table {
+		margin-left: 0;
+		margin-right: 0;
+	}
+	.reveal pre code {
+		padding: 20px;
+		border: 1px solid #ddd;
+	}
+	.reveal blockquote {
+		margin: 20px 0;
+	}
+	.reveal .slides {
+		position: static !important;
+		width: auto !important;
+		height: auto !important;
+
+		left: 0 !important;
+		top: 0 !important;
+		margin-left: 0 !important;
+		margin-top: 0 !important;
+		padding: 0 !important;
+		zoom: 1 !important;
+
+		overflow: visible !important;
+		display: block !important;
+
+		text-align: left !important;
+		-webkit-perspective: none;
+		   -moz-perspective: none;
+		    -ms-perspective: none;
+		        perspective: none;
+
+		-webkit-perspective-origin: 50% 50%;
+		   -moz-perspective-origin: 50% 50%;
+		    -ms-perspective-origin: 50% 50%;
+		        perspective-origin: 50% 50%;
+	}
+	.reveal .slides section {
+		visibility: visible !important;
+		position: static !important;
+		width: auto !important;
+		height: auto !important;
+		display: block !important;
+		overflow: visible !important;
+
+		left: 0 !important;
+		top: 0 !important;
+		margin-left: 0 !important;
+		margin-top: 0 !important;
+		padding: 60px 20px !important;
+		z-index: auto !important;
+
+		opacity: 1 !important;
+
+		page-break-after: always !important;
+
+		-webkit-transform-style: flat !important;
+		   -moz-transform-style: flat !important;
+		    -ms-transform-style: flat !important;
+		        transform-style: flat !important;
+
+		-webkit-transform: none !important;
+		   -moz-transform: none !important;
+		    -ms-transform: none !important;
+		        transform: none !important;
+
+		-webkit-transition: none !important;
+		   -moz-transition: none !important;
+		    -ms-transition: none !important;
+		        transition: none !important;
+	}
+	.reveal .slides section.stack {
+		padding: 0 !important;
+	}
+	.reveal section:last-of-type {
+		page-break-after: avoid !important;
+	}
+	.reveal section .fragment {
+		opacity: 1 !important;
+		visibility: visible !important;
+
+		-webkit-transform: none !important;
+		   -moz-transform: none !important;
+		    -ms-transform: none !important;
+		        transform: none !important;
+	}
+	.reveal section img {
+		display: block;
+		margin: 15px 0px;
+		background: rgba(255,255,255,1);
+		border: 1px solid #666;
+		box-shadow: none;
+	}
+
+	.reveal section small {
+		font-size: 0.8em;
+	}
+
+}  
+</script>
+
+
+<script id="pdf-css" type="application/dynamic-css">
+    
+/**
+ * This stylesheet is used to print reveal.js
+ * presentations to PDF.
+ *
+ * https://github.com/hakimel/reveal.js#pdf-export
+ */
+
+* {
+	-webkit-print-color-adjust: exact;
+}
+
+body {
+	margin: 0 auto !important;
+	border: 0;
+	padding: 0;
+	float: none !important;
+	overflow: visible;
+}
+
+html {
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+}
+
+/* Remove any elements not needed in print. */
+.nestedarrow,
+.reveal .controls,
+.reveal .progress,
+.reveal .playback,
+.reveal.overview,
+.fork-reveal,
+.share-reveal,
+.state-background {
+	display: none !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	text-shadow: 0 0 0 #000 !important;
+}
+
+.reveal pre code {
+	overflow: hidden !important;
+	font-family: Courier, 'Courier New', monospace !important;
+}
+
+ul, ol, div, p {
+	visibility: visible;
+	position: static;
+	width: auto;
+	height: auto;
+	display: block;
+	overflow: visible;
+	margin: auto;
+}
+.reveal {
+	width: auto !important;
+	height: auto !important;
+	overflow: hidden !important;
+}
+.reveal .slides {
+	position: static;
+	width: 100%;
+	height: auto;
+
+	left: auto;
+	top: auto;
+	margin: 0 !important;
+	padding: 0 !important;
+
+	overflow: visible;
+	display: block;
+
+	-webkit-perspective: none;
+	   -moz-perspective: none;
+	    -ms-perspective: none;
+	        perspective: none;
+
+	-webkit-perspective-origin: 50% 50%; /* there isn't a none/auto value but 50-50 is the default */
+	   -moz-perspective-origin: 50% 50%;
+	    -ms-perspective-origin: 50% 50%;
+	        perspective-origin: 50% 50%;
+}
+
+.reveal .slides section {
+	page-break-after: always !important;
+
+	visibility: visible !important;
+	position: relative !important;
+	display: block !important;
+	position: relative !important;
+
+	margin: 0 !important;
+	padding: 0 !important;
+	box-sizing: border-box !important;
+	min-height: 1px;
+
+	opacity: 1 !important;
+
+	-webkit-transform-style: flat !important;
+	   -moz-transform-style: flat !important;
+	    -ms-transform-style: flat !important;
+	        transform-style: flat !important;
+
+	-webkit-transform: none !important;
+	   -moz-transform: none !important;
+	    -ms-transform: none !important;
+	        transform: none !important;
+}
+
+.reveal section.stack {
+	margin: 0 !important;
+	padding: 0 !important;
+	page-break-after: avoid !important;
+	height: auto !important;
+	min-height: auto !important;
+}
+
+.reveal img {
+	box-shadow: none;
+}
+
+.reveal .roll {
+	overflow: visible;
+	line-height: 1em;
+}
+
+/* Slide backgrounds are placed inside of their slide when exporting to PDF */
+.reveal section .slide-background {
+	display: block !important;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	z-index: -1;
+}
+
+/* All elements should be above the slide-background */
+.reveal section>* {
+	position: relative;
+	z-index: 1;
+}
+
+/* Display slide speaker notes when 'showNotes' is enabled */
+.reveal .speaker-notes-pdf {
+	display: block;
+	width: 100%;
+	max-height: none;
+	left: auto;
+	top: auto;
+	z-index: 100;
+}
+
+/* Display slide numbers when 'slideNumber' is enabled */
+.reveal .slide-number-pdf {
+	display: block;
+	position: absolute;
+	font-size: 14px;
+}
+
+</script>
+
+
+<script>
+var style = document.createElement( 'style' );
+style.type = 'text/css';
+var style_script_id = window.location.search.match( /print-pdf/gi ) ? 'pdf-css' : 'paper-css';
+var style_script = document.getElementById(style_script_id).text;
+style.innerHTML = style_script;
+document.getElementsByTagName('head')[0].appendChild(style);
+</script>
+
+    <script src="index_files/header-attrs-2.22/header-attrs.js"></script>
+    <link href="index_files/font-awesome-6.4.0/css/all.min.css" rel="stylesheet" />
+    <link href="index_files/font-awesome-6.4.0/css/v4-shims.min.css" rel="stylesheet" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<section>
+    <h1 class="title">Particle filtering methods for animal movement
+modeling</h1>
+    <h2 class="author">Andy Hoegh</h2>
+</section>
+
+<section>
+<section id="presentation-overview" class="title-slide slide level1">
+<h1>PRESENTATION OVERVIEW</h1>
+
+</section>
+<section id="presentation-overview-1" class="slide level2">
+<h2>Presentation Overview</h2>
+<ol type="1">
+<li class="fragment"><p>A little about me…</p></li>
+<li class="fragment"><p>Collaborative research projects that motivated
+this work</p></li>
+<li class="fragment"><p>Animal movement model primer</p></li>
+<li class="fragment"><p>Agent-Based Models with SMC</p></li>
+</ol>
+</section>
+<section id="my-research-philosophy" class="slide level2">
+<h2>My Research Philosophy</h2>
+<ul>
+<li class="fragment"><p>“The best thing about being a statistician is
+that you get to play in everyone’s backyard.” - John Tukey<br />
+</p></li>
+<li class="fragment"><p>“Problem first, not solution backward” - Jeff
+Leek<br />
+<img src="https://cdn.pixabay.com/photo/2012/04/13/20/57/hammer-33617__480.png" width="100px" /></p></li>
+<li class="fragment"><p>Understand and report uncertainty<br />
+</p></li>
+<li class="fragment"><p>Create software for implementation</p></li>
+</ul>
+</section>
+<section id="griffith-university" class="slide level2">
+<h2>Griffith University</h2>
+<ul>
+<li>Visiting Research Fellow in the Centre for Planetary Health and Food
+Security</li>
+</ul>
+<p><img src="griffith.png" width="400px" /></p>
+</section>
+<section id="montana-state-university" class="slide level2">
+<h2>Montana State University</h2>
+<ul>
+<li>Associate Professor of Statistics</li>
+</ul>
+<p><img src="https://msuadmissions.files.wordpress.com/2012/11/prospectivewelcome.gif" width="1000px" /></p>
+</section>
+<section id="montana-state-university-1" class="slide level2">
+<h2>Montana State University</h2>
+<ul>
+<li>Associate Professor of Statistics (<em>on sabbatical</em>)</li>
+</ul>
+<p><img src="https://bloximages.chicago2.vip.townnews.com/missoulian.com/content/tncms/assets/v3/editorial/1/26/12683bb0-f297-5d98-aad8-f08d34b7a683/57b73db33ce8d.image.jpg?resize=1200%2C783" width="800px" /></p>
+</section></section>
+<section>
+<section id="motivating-projects-grizzly-bears"
+class="title-slide slide level1">
+<h1>MOTIVATING PROJECTS: Grizzly Bears</h1>
+
+</section>
+<section id="grizzly-bear-range-in-gye" class="slide level2">
+<h2>Grizzly Bear Range in GYE</h2>
+<p><img src="https://www.nps.gov/yell/learn/nature/images/griz_sow.jpg?maxwidth=1200&maxheight=1200&autorotate=false" width="800px" /></p>
+</section>
+<section id="greater-yellowstone-ecosystem" class="slide level2">
+<h2>Greater Yellowstone Ecosystem</h2>
+<p><img src="YellowstoneMap.png" width="800px" /></p>
+</section>
+<section id="greater-yellowstone-ecosystem-1" class="slide level2">
+<h2>Greater Yellowstone Ecosystem</h2>
+<p><img src="Yellowstone.jpg" width="800px" /></p>
+</section>
+<section id="grand-teton-np" class="slide level2">
+<h2>Grand Teton NP</h2>
+<p><img src="Teton.png" width="900px" /></p>
+</section>
+<section id="research-problem-expanding-grizzly-range"
+class="slide level2">
+<h2>Research Problem: Expanding Grizzly Range</h2>
+<p><img src="https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/media/images/GYE-GB-Occupied-Range-1990-2020.gif" width="600px" /></p>
+</section>
+<section id="research-problem" class="slide level2">
+<h2>Research Problem</h2>
+<ul>
+<li>Use historical telemetric data from individual grizzly bears to
+understand and model population dynamics and predict when/where grizzly
+bears will be.</li>
+</ul>
+<ul>
+<li>Grizzly bears establish a home range and can be territorial.</li>
+</ul>
+<ul>
+<li>Range expansion is typically a product of males (young or old)
+searching for their own home range after being forced out.</li>
+</ul>
+</section>
+<section id="section" class="slide level2"
+data-background-video="animation.mp4">
+<h2 data-background-video="animation.mp4"></h2>
+</section></section>
+<section>
+<section id="motivating-projects-flying-foxes"
+class="title-slide slide level1">
+<h1>MOTIVATING PROJECTS: Flying Foxes</h1>
+
+</section>
+<section id="flying-foxes" class="slide level2">
+<h2>Flying Foxes</h2>
+<p><img src="bats.png" width="800px" /></p>
+</section>
+<section id="hendra-virus-spillover" class="slide level2">
+<h2>Hendra Virus Spillover</h2>
+<p><img src="Hendra_news.png" width="800px" /></p>
+</section>
+<section id="hendra-virus-spillover-1" class="slide level2">
+<h2>Hendra Virus Spillover</h2>
+<p><img src="nature.png" width="800px" /></p>
+</section>
+<section id="flying-fox-behavior" class="slide level2">
+<h2>Flying Fox Behavior</h2>
+<p><img src="robin.png" width="800px" /></p>
+</section>
+<section id="section-1" class="slide level2"
+data-background-video="flyout.mov">
+<h2 data-background-video="flyout.mov"></h2>
+</section>
+<section id="research-problem-1" class="slide level2">
+<h2>Research Problem</h2>
+<ul>
+<li>Hendra virus spillover is most likely during periods with low
+natural food availability.</li>
+</ul>
+<ul>
+<li>Spillover risk influenced by bat-horse interface and potentially
+exacerbated by higher viral shedding levels due to poor nutrition.</li>
+</ul>
+<ul>
+<li>Use radar, across wide spectrum of food availability, to understand
+bat movement behavior and how it relates to the spillover risk of Hendra
+virus.</li>
+</ul>
+</section>
+<section id="radar-data" class="slide level2">
+<h2>Radar Data</h2>
+<p><img src="tracks.png" width="700px" /></p>
+</section></section>
+<section>
+<section id="animal-movement-models" class="title-slide slide level1">
+<h1>ANIMAL MOVEMENT MODELS</h1>
+
+</section>
+<section id="positional-data-to-movement-modeling" class="slide level2">
+<h2>Positional Data to Movement Modeling</h2>
+<p><img src="turn_angle.png" width="900px" /></p>
+</section>
+<section id="animal-movement-models-1" class="slide level2">
+<h2>Animal Movement Models</h2>
+<ul>
+<li>Step Length: is a distribution for distance traveled in a specific
+period</li>
+</ul>
+<ul>
+<li>Angular Direction:<br />
+<img src="index_files/figure-revealjs/unnamed-chunk-16-1.png" width="400px" /></li>
+</ul>
+</section>
+<section id="data-model" class="slide level2">
+<h2>Data Model</h2>
+<p><span class="math display">\[\underline{z}_{t} = H_t
+\underline{s}_{t} + \underline{\epsilon}_t, \; \; \;\;\;\;
+\underline{\epsilon}_t \sim N(0,\sigma^2_{\epsilon} I)\]</span> where
+<span class="math inline">\(\underline{z}_t\)</span> is a matrix of the
+observed locations for the agents at time t, <span
+class="math inline">\(H_t\)</span> is an incidence matrix to determine
+whether an agent is observed at time t, <span
+class="math inline">\(\underline{s}_t\)</span> is the latent location at
+time, and <span class="math inline">\(\epsilon_t\)</span> is the error
+process</p>
+<ul>
+<li class="fragment">This model can be formulated as a state-space model
+(of HMM)</li>
+</ul>
+</section>
+<section id="process-model" class="slide level2">
+<h2>Process Model</h2>
+<p><span class="math display">\[\underline{s}_{i,t} =
+\underline{s}_{i,t-1} + u_{i,t}\underline{\delta}_{i,t} +
+\underline{\eta}_{i,t}\]</span></p>
+<ul>
+<li><span class="math inline">\(u_{i,t}\)</span> represents the
+speed</li>
+<li><span class="math inline">\(\underline{\delta}_{i,t}\)</span> is a
+unit vector for the directional component of the velocity</li>
+</ul>
+<h4 id="angular-heading">Angular Heading</h4>
+<p><span class="math display">\[\left(\delta_{x,i,t},
+\delta_{y,i,t}\right)&#39; = \left( \cos(\theta_{i,t}),
+\sin(\theta_{i,t}) \right)\]</span> <span
+class="math display">\[\theta_{i,t}  \sim VonMises(\mu, \kappa)\]</span>
+&gt;- <span class="math inline">\(\mu\)</span> is an angular heading and
+<span class="math inline">\(\kappa\)</span> is a concentration
+parameter</p>
+<h4 id="speed">Speed</h4>
+<p><span class="math display">\[u_{i,t} = N_+(\mu_u,
+\sigma^2_u)\]</span></p>
+</section>
+<section id="additional-complexity" class="slide level2">
+<h2>Additional Complexity</h2>
+<ul>
+<li class="fragment"><p>Mixture distribution on the angle
+heading</p></li>
+<li class="fragment"><p>Spatial covariates (can influence step distance
+and heading)</p></li>
+<li class="fragment"><p>State switching models (different movement
+during different behaviors)</p></li>
+<li class="fragment"><p>Collective movement (animals influence other
+behavioral patterns)</p></li>
+</ul>
+</section></section>
+<section>
+<section id="agent-based-models" class="title-slide slide level1">
+<h1>AGENT BASED MODELS</h1>
+
+</section>
+<section id="agent-based-models-1" class="slide level2">
+<h2>Agent Based Models</h2>
+<ul>
+<li class="fragment"><p>Agent based models are a simulation based
+approach using a set of <em>agents</em>.</p></li>
+<li class="fragment"><p>Each agent is given a relatively simple set of
+rules, which control interactions between agents.</p></li>
+<li class="fragment"><p>The collective behavior of agents can model
+complex population level characteristics.</p></li>
+</ul>
+</section>
+<section id="agent-properties" class="slide level2">
+<h2>Agent Properties</h2>
+<p>The agents have a set of characteristics:</p>
+<ul>
+<li>movement speed</li>
+<li>angular heading</li>
+<li>environmental characteristics</li>
+<li>home range affinity</li>
+<li>collective movement</li>
+</ul>
+</section>
+<section id="collective-movement" class="slide level2">
+<h2>Collective Movement</h2>
+<p>Collective animal movement refers to a situation where animals
+influence each others behavior.</p>
+<p>Commonly, there are three types of behaviors considered</p>
+<ul>
+<li class="fragment">Attraction</li>
+<li class="fragment">Alignment</li>
+<li class="fragment">Repulsion</li>
+</ul>
+</section>
+<section id="overview-of-applications" class="slide level2">
+<h2>Overview of Applications</h2>
+<ul>
+<li class="fragment">Guppies (McDermott and Wikle, 2017)</li>
+<li class="fragment">Rabies (Hooten and Wikle, 2012)</li>
+<li class="fragment">Locusts (Bernoff, 2020 )</li>
+<li class="fragment">Infectious Disease (Higdon, et. al, 2018)</li>
+</ul>
+</section>
+<section id="self-propelled-particles" class="slide level2">
+<h2>Self Propelled Particles</h2>
+<p><em>The only rule of the model is: at each time step a given particle
+driven with a constant absolute velocity assumes the average direction
+of motion of the particles in its neighborhood of radius r with some
+random perturbation added.</em></p>
+<p>Vicsek, et. al 1995.</p>
+</section>
+<section id="agent-properties-for-grizzly-bears" class="slide level2">
+<h2>Agent Properties for Grizzly Bears</h2>
+<p>The agents have a set of characteristics:</p>
+<ul>
+<li class="fragment">movement speed</li>
+<li class="fragment">angular heading</li>
+<li class="fragment">environmental characteristics</li>
+<li class="fragment">home range affinity</li>
+<li class="fragment">repulsion / attraction</li>
+</ul>
+</section></section>
+<section>
+<section id="computation" class="title-slide slide level1">
+<h1>COMPUTATION</h1>
+
+</section>
+<section id="statistical-model-fitting" class="slide level2">
+<h2>Statistical Model Fitting</h2>
+<ul>
+<li class="fragment"><p>Complex, collective movement models where agents
+interact pose challenges for parameter estimation.</p></li>
+<li class="fragment"><p>Parameters associated with the agent rules are
+estimated to allow for uncertainty in model parameters.</p></li>
+</ul>
+</section>
+<section id="agent-based-models-as-state-space-model"
+class="slide level2">
+<h2>Agent-Based Models as State Space Model</h2>
+<ul>
+<li class="fragment"><p>We want to estimate model parameters, denoted as
+<span class="math inline">\(\Theta\)</span>, such as those in the
+probability distributions for step size and turning angle.</p></li>
+<li class="fragment"><p>However for each agent at a given time we also
+need to estimate a set of “state parameters”, denoted <span
+class="math inline">\(\mathcal{X}\)</span>:</p>
+<ul>
+<li class="fragment">step size for time t</li>
+<li class="fragment">turning angle for time t</li>
+<li class="fragment">agent location (x and y) coordinates</li>
+</ul></li>
+</ul>
+</section>
+<section id="mcmc-algorithm-metropolis-hastings" class="slide level2">
+<h2>MCMC Algorithm (Metropolis-Hastings)</h2>
+<p>We want the joint posterior distribution <span
+class="math inline">\(p(\Theta,\mathcal{X}|y)\)</span>.</p>
+<ul>
+<li class="fragment">Propose: <span class="math inline">\(\{\Theta,
+\mathcal{X}\}^{&#39;} \sim g(\{\Theta, \mathcal{X}\}^{&#39;}|\{\Theta,
+\mathcal{X}\})\)</span></li>
+<li class="fragment">Compute: <span class="math inline">\(\alpha =
+\frac{p(y|\{\Theta, \mathcal{X}\}^{&#39;})p(\{\Theta,
+\mathcal{X}\}^{&#39;})g(\{\Theta, \mathcal{X}\}|\{\Theta,
+\mathcal{X}\}^{&#39;})}{p(y|\{\Theta, \mathcal{X}\})p(\{\Theta,
+\mathcal{X}\})g(\{\Theta, \mathcal{X}\}^{&#39;}|\{\Theta,
+\mathcal{X}\})}\)</span></li>
+<li class="fragment">Accept: <span class="math inline">\(\{\Theta,
+\mathcal{X}\}^{&#39;}\)</span> with prob <span class="math inline">\(=
+min(1, \alpha)\)</span></li>
+</ul>
+</section>
+<section id="approximate-bayesian-computation" class="slide level2">
+<h2>Approximate Bayesian Computation</h2>
+<ul>
+<li class="fragment">While MCMC techniques are not always feasible,
+Approximate Bayesian Computation (ABC) can be used for model
+estimation.</li>
+<li class="fragment">Where MCMC algorithms propose and accept parameter
+values based on evaluating the likelihood, ABC methods summarize the
+data and accept moves based on similarity in the observed data and, in
+this case, agent movements.</li>
+</ul>
+</section>
+<section id="abc-algorithm" class="slide level2">
+<h2>ABC Algorithm</h2>
+<p>For iter in 1:N</p>
+<ol type="1">
+<li class="fragment">sample <span class="math inline">\(\theta^{&#39;}
+\sim p(\theta)\)</span></li>
+<li class="fragment">simulate <span class="math inline">\(\tilde{y} \sim
+p(y|\theta^{&#39;})\)</span></li>
+<li class="fragment">accept <span
+class="math inline">\(\theta^{&#39;}\)</span> if <span
+class="math inline">\(d(m(y),m(\tilde{y})) &lt; \epsilon\)</span>, where
+<span class="math inline">\(m()\)</span> is summary statistic and <span
+class="math inline">\(d()\)</span> is a distance function</li>
+</ol>
+</section>
+<section id="summary-statistic" class="slide level2">
+<h2>Summary Statistic</h2>
+<ul>
+<li class="fragment">Ideally, <span class="math inline">\(m()\)</span>
+is a sufficient statistics. If this is the case and <span
+class="math inline">\(\epsilon \rightarrow 0\)</span>, then ABC takes
+samples from posterior.</li>
+<li class="fragment">Otherwise …</li>
+<li class="fragment">Choose a reasonable set of statistical
+measures</li>
+<li class="fragment">In this case, the agent parameters are not the
+primary interest, rather they are a means to understanding population
+level characteristics.</li>
+</ul>
+</section>
+<section id="hybrid-abc-mcmc-algorithm" class="slide level2">
+<h2>Hybrid ABC-MCMC Algorithm</h2>
+<ol type="1">
+<li class="fragment">Propose <span class="math inline">\(\Theta^{&#39;}
+\sim [\Theta]\)</span></li>
+<li class="fragment">Generate <span
+class="math inline">\(\tilde{s}_{i,t}\)</span></li>
+<li class="fragment">Acceptance of <span class="math inline">\(\Theta,
+\tilde{s}\)</span> is a function of <span
+class="math display">\[\frac{\pi(\underline{s}|\tilde{s}^{&#39;},\Theta^{&#39;},
+-)p(\Theta^{&#39;})p(\Theta)}{\pi(\underline{s}|\tilde{s}^,\Theta^,
+-)p(\Theta)p(\Theta^{&#39;})}\]</span></li>
+</ol>
+</section>
+<section id="particle-mcmc" class="slide level2">
+<h2>Particle-MCMC</h2>
+<ul>
+<li class="fragment"><p>Particle-MCMC combines particle-based methods
+with MCMC.</p></li>
+<li class="fragment"><p>A particle filter is used to propose <span
+class="math inline">\(p(\mathcal{X}|\Theta)\)</span> in the MCMC
+framework</p></li>
+<li class="fragment"><p>There are ways to carry out a Gibbs-sampler and
+iterate between sampling <span
+class="math inline">\(\mathcal{X}\)</span> and <span
+class="math inline">\(\Theta\)</span>.</p></li>
+</ul>
+</section></section>
+<section>
+<section id="references" class="title-slide slide level1">
+<h1>References</h1>
+
+</section>
+<section id="images" class="slide level2">
+<h2>Images</h2>
+<p>Obtained and used under Fair Use Guidelines</p>
+</section></section>
+    </div>
+  </div>
+
+  <script src="index_files/reveal.js-3.3.0.1/lib/js/head.min.js"></script>
+  <script src="index_files/reveal.js-3.3.0.1/js/reveal.js"></script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        // Display controls in the bottom right corner
+        controls: true,
+        // Display a presentation progress bar
+        progress: true,
+        // Push each slide change to the browser history
+        history: true,
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+        // Enable the slide overview mode
+        overview: true,
+        // Vertical centering of slides
+        center: true,
+        // Enables touch navigation on devices with touch input
+        touch: true,
+        // Turns fragments on and off globally
+        fragments: true,
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+        // Transition style
+        transition: 'none', // none/fade/slide/convex/concave/zoom
+        // Transition speed
+        transitionSpeed: 'default', // default/fast/slow
+        // Transition style for full page slide backgrounds
+        backgroundTransition: 'default', // none/fade/slide/convex/concave/zoom
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+
+
+        chalkboard: {
+          toggleNotesButton: true,
+          theme: 'whiteboard',
+        },
+
+        keyboard: {
+          67: function() { RevealChalkboard.toggleNotesCanvas() },    // toggle notes canvas when 'c' is pressed
+          66: function() { RevealChalkboard.toggleChalkboard() }, // toggle chalkboard when 'b' is pressed
+          46: function() { RevealChalkboard.clear() },    // clear chalkboard when 'DEL' is pressed
+           8: function() { RevealChalkboard.reset() },    // reset chalkboard data on current slide when 'BACKSPACE' is pressed
+          68: function() { RevealChalkboard.download() }, // downlad recorded chalkboard drawing when 'd' is pressed
+        },
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'index_files/reveal.js-3.3.0.1/plugin/chalkboard/chalkboard.js', async: true },
+        ]
+      });
+    </script>
+  <!-- dynamically load mathjax for compatibility with self-contained -->
+  <script>
+    (function () {
+      var script = document.createElement("script");
+      script.type = "text/javascript";
+      script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+      document.getElementsByTagName("head")[0].appendChild(script);
+    })();
+  </script>
+
+<script>
+  (function() {
+    if (window.jQuery) {
+      Reveal.addEventListener( 'slidechanged', function(event) {  
+        window.jQuery(event.previousSlide).trigger('hidden');
+        window.jQuery(event.currentSlide).trigger('shown');
+      });
+    }
+  })();
+</script>
+
+
+  </body>
+</html>
